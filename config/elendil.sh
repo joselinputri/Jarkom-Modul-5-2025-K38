@@ -1,5 +1,5 @@
-auto eth2
-iface eth2 inet static
+auto eth0
+iface eth0 inet static
     address 192.230.0.2
     netmask 255.255.255.0
     gateway 192.230.0.1

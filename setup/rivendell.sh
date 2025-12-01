@@ -1,22 +1,32 @@
+cat > /root/setup-relay.sh << 'EOF'
 #!/bin/bash
-echo "=== RIVENDELL SETUP ==="
+echo "=== RIVENDELL DHCP RELAY SETUP ==="
+export DEBIAN_FRONTEND=noninteractive
 
-# Install tools & DHCP Relay
-apt-get update
-apt-get install -y iputils-ping iproute2 isc-dhcp-relay
+apt-get update -qq
+apt-get install -y isc-dhcp-relay procps
 
-# Konfigurasi DHCP Relay
-echo 'SERVERS="192.230.1.202"' > /etc/default/isc-dhcp-relay
-echo 'INTERFACES="eth1 eth3"' >> /etc/default/isc-dhcp-relay
-echo 'OPTIONS=""' >> /etc/default/isc-dhcp-relay
+cat > /etc/default/isc-dhcp-relay << 'RELAYCONF'
+SERVERS="192.230.1.202"
+INTERFACES="eth1 eth3"
+OPTIONS=""
+RELAYCONF
 
-# Restart DHCP Relay
 service isc-dhcp-relay restart
 
-echo ""
-echo "=== TESTING ==="
-ping -c 2 192.230.1.221 && echo "✅ Osgiliath OK" || echo "❌ Osgiliath FAIL"
-ping -c 2 8.8.8.8 && echo "✅ Internet OK" || echo "❌ Internet FAIL"
+sleep 2
+
+if ps aux | grep dhcrelay | grep -v grep; then
+    echo "✅ DHCP Relay Running"
+    ps aux | grep dhcrelay | grep -v grep
+else
+    echo "❌ DHCP Relay Failed"
+fi
 
 echo ""
-echo "=== RIVENDELL READY ==="
+echo "=== RIVENDELL DHCP RELAY READY ==="
+EOF
+
+chmod +x /root/setup-relay.sh
+bash /root/setup-relay.sh
+
