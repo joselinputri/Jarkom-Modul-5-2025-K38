@@ -24,7 +24,7 @@
 ---
 
 ## 🗺️ Topologi Jaringan
-
+![topologi](top5.png)
 
 ### Keterangan Perangkat
 
@@ -103,6 +103,8 @@
 | A12 | 192.230.1.236 | /30 | 192.230.1.239 | 192.230.1.237 - 192.230.1.238 | 2 |
 
 ---
+### Tree
+![tree](treee.png)
 
 ## 🎯 Misi 1: Memetakan Medan Perang
 
@@ -347,6 +349,8 @@ curl http://192.230.1.234  # Palantir
 curl http://192.230.1.210  # IronHills
 ```
 > **Note**: Semua konfigurasi lengkap ada di folder `setup/`
+![topologi](1.44.png)
+![topologi](1.444.png)
 
 ---
 
@@ -419,7 +423,8 @@ ping 192.230.1.202
 ping 192.230.1.203  # Narya
 ping 8.8.8.8        # Internet
 ```
-
+![topologi](2.2.png)
+![topologi](2.22.png)
 ---
 
 ### 2.3 Hanya Vilya yang Akses Narya
@@ -457,8 +462,69 @@ nc -zv 192.230.1.203 53
 ```
 
 > **Note**: Hapus aturan ini setelah testing agar internet lancar untuk install paket
+![topologi](2.3.png)
+![topologi](2.33.png)
 
 ---
+# 2.4  IronHills Weekend Access Control
+
+## 📌 Deskripsi
+Blokir akses HTTP ke IronHills kecuali hari Sabtu/Minggu untuk subnet tertentu.
+
+## 🎯 Subnet yang Diizinkan
+| Node | Subnet | Waktu |
+|------|--------|-------|
+| Durin | 192.230.1.128/26 | Weekend |
+| Khamul | 192.230.1.192/29 | Weekend |
+| Elendil & Isildur | 192.230.0.0/24 | Weekend |
+
+## 🚀 Script
+```bash
+#!/bin/bash
+
+# Install dependencies
+apt-get install -y iptables apache2 xtables-addons-common
+systemctl restart apache2
+
+# Reset rules
+iptables -F
+
+# Basic rules
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Weekend-only HTTP access
+iptables -A INPUT -p tcp --dport 80 -s 192.230.1.128/26 -m time --weekdays Sat,Sun -j ACCEPT  # Durin
+iptables -A INPUT -p tcp --dport 80 -s 192.230.1.192/29 -m time --weekdays Sat,Sun -j ACCEPT  # Khamul
+iptables -A INPUT -p tcp --dport 80 -s 192.230.0.0/24 -m time --weekdays Sat,Sun -j ACCEPT    # Elendil & Isildur
+
+# Block semua HTTP lainnya
+iptables -A INPUT -p tcp --dport 80 -j DROP
+
+echo "✅ Firewall configured!"
+```
+
+## 🧪 Testing
+```bash
+# Test GAGAL (Rabu)
+date -s "2025-11-27 12:00:00"
+curl http://192.230.x.x  # Timeout/refused
+
+# Test SUKSES (Sabtu)
+date -s "2025-11-30 12:00:00"
+curl http://192.230.x.x  # Apache page muncul
+```
+
+## 📊 Verifikasi
+```bash
+# Lihat rules
+iptables -L INPUT -n -v
+
+# Cek modul time
+lsmod | grep xt_time
+```
+
+![topologi](2.4.png)
 
 ### 2.5 Port Scan Detection (Palantir)
 
