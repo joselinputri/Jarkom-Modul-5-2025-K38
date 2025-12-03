@@ -24,7 +24,7 @@
 ---
 
 ## 🗺️ Topologi Jaringan
-![topologi](top5.png)
+![top5](assets/top5.png)
 
 ### Keterangan Perangkat
 
@@ -103,8 +103,7 @@
 | A12 | 192.230.1.236 | /30 | 192.230.1.239 | 192.230.1.237 - 192.230.1.238 | 2 |
 
 ---
-### Tree
-![tree](treee.png)
+
 
 ## 🎯 Misi 1: Memetakan Medan Perang
 
@@ -138,6 +137,7 @@ Identifikasi perangkat sesuai dengan fungsinya dalam jaringan Aliansi:
 
 Pohon subnet VLSM untuk jaringan `192.230.0.0/22`:
 ```
+![treee](assets/treee.png)
 
 ---
 
@@ -349,8 +349,8 @@ curl http://192.230.1.234  # Palantir
 curl http://192.230.1.210  # IronHills
 ```
 > **Note**: Semua konfigurasi lengkap ada di folder `setup/`
-![topologi](1.44.png)
-![topologi](1.444.png)
+![1.44](assets/1.44.png)
+![1.444](assets/1.444.png)
 
 ---
 
@@ -423,8 +423,8 @@ ping 192.230.1.202
 ping 192.230.1.203  # Narya
 ping 8.8.8.8        # Internet
 ```
-![topologi](2.2.png)
-![topologi](2.22.png)
+![2.2](assets/2.2.png)
+![2.22](assets/2.22.png)
 ---
 
 ### 2.3 Hanya Vilya yang Akses Narya
@@ -462,8 +462,8 @@ nc -zv 192.230.1.203 53
 ```
 
 > **Note**: Hapus aturan ini setelah testing agar internet lancar untuk install paket
-![topologi](2.3.png)
-![topologi](2.33.png)
+![2.3](assets/2.3.png)
+![2.33](assets/2.33.png)
 
 ---
 # 2.4  IronHills Weekend Access Control
@@ -524,7 +524,7 @@ iptables -L INPUT -n -v
 lsmod | grep xt_time
 ```
 
-![topologi](2.4.png)
+![2.4](assets/2.4.png)
 
 ### 2.5 Port Scan Detection (Palantir)
 
