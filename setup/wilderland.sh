@@ -1,7 +1,8 @@
 #!/bin/bash
 echo "=== WILDERLAND (DHCP RELAY) SETUP ==="
 
-# Install tools & DHCP Relay
+# Install tools & DHCP Relay tanpa konfirmasi
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y iputils-ping iproute2 isc-dhcp-relay
 

@@ -1,23 +1,26 @@
 #!/bin/bash
-echo "=== WEB SERVER SETUP ==="
+echo "=== PALANTIR WEB SERVER SETUP ==="
 
-# Install tools & Web Server
+# Install nginx dan tools
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y iputils-ping iproute2 nginx
-
-# Dapatkan hostname
-HOSTNAME=$(hostname)
+apt-get install -y nginx iputils-ping iproute2 curl
 
 # Buat index.html
-echo "Welcome to $HOSTNAME" > /var/www/html/index.html
+echo "Welcome to Palantir" > /var/www/html/index.html
 
 # Start nginx
 service nginx start
 
-echo ""
 echo "=== TESTING ==="
+# Test internet
 ping -c 2 8.8.8.8 && echo "✅ Internet OK" || echo "❌ Internet FAIL"
-curl http://localhost && echo "✅ Web Server OK" || echo "❌ Web Server FAIL"
 
-echo ""
+# Test web server
+curl -s localhost | grep -q "Palantir" && echo "✅ Web Server OK" || echo "❌ Web Server FAIL"
+
 echo "=== WEB SERVER READY ==="
+
+
+# tes 
+curl 192.230.1.234 
