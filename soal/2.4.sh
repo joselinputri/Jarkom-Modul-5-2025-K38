@@ -50,11 +50,11 @@ echo ""
 
 echo "================ TESTING ================"
 echo "💢 Hari Rabu (harus GAGAL):"
-echo "  curl http://192.230.1.210"
+echo "  curl -m 2 http://192.230.1.210"
 echo ""
 echo "👉 Untuk test hari Sabtu:"
 echo "  date -s '2025-11-29 12:00:00'"
-echo "  curl http://192.230.1.210"
+echo "  curl -m 2 http://192.230.1.210"
 echo ""
 echo "========================================="
 
