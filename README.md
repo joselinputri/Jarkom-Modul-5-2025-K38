@@ -460,64 +460,133 @@ nc -zv 192.230.1.203 53
 
 ---
 
-### 2.4 Akses IronHills Weekend Only
+### 2.5 Port Scan Detection (Palantir)
 
 **Soal:**
-> Aktivitas mencurigakan terdeteksi di IronHills. IronHills hanya boleh diakses pada **Akhir Pekan (Sabtu & Minggu)**. Akses hanya diizinkan untuk:
-> - Faksi Kurcaci & Pengkhianat (Durin & Khamul)
-> - Faksi Manusia (Elendil & Isildur)
-> 
-> Karena hari ini adalah **Rabu** (simulasikan waktu server), mereka harusnya tertolak.
+> Pasukan Manusia (Elendil) diminta menguji keamanan Palantir. Lakukan simulasi port scan dengan nmap rentang port 1-100.
+> a. Web server harus memblokir scan port yang melebihi 15 port dalam waktu 20 detik.
+> b. Penyerang yang terblokir tidak dapat melakukan ping, nc, atau curl ke Palantir.
+> c. Catat log iptables dengan prefix "PORT_SCAN_DETECTED".
 
 **Solusi:**
 
-Pada **IronHills**, tambahkan iptables rule:
+Pada **Palantir**, konfigurasi firewall untuk mendeteksi dan memblokir port scanner:
+
 ```bash
-# Simulasi waktu ke hari Rabu
-date -s "2025-11-27 12:00:00"  # Wednesday
+# 1. Buat Chain PORTSCAN
+iptables -N PORTSCAN
+iptables -A PORTSCAN -m limit --limit 2/min -j LOG --log-prefix "PORT_SCAN_DETECTED: " --log-level 4
+iptables -A PORTSCAN -j DROP
 
-# Allow akses dari Durin (A3) hanya Sabtu-Minggu
-iptables -A INPUT -p tcp --dport 80 -s 192.230.1.128/26 -m time --weekdays Sat,Sun -j ACCEPT
+# 2. Whitelist Established Connections
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
 
-# Allow akses dari Khamul (A4) hanya Sabtu-Minggu
-iptables -A INPUT -p tcp --dport 80 -s 192.230.1.192/29 -m time --weekdays Sat,Sun -j ACCEPT
-
-# Allow akses dari Elendil & Isildur (A9) hanya Sabtu-Minggu
-iptables -A INPUT -p tcp --dport 80 -s 192.230.0.0/24 -m time --weekdays Sat,Sun -j ACCEPT
-
-# Blokir selain itu
-iptables -A INPUT -p tcp --dport 80 -j DROP
+# 3. Logic Deteksi ( > 15 hits dalam 20 detik)
+iptables -A INPUT -p tcp --syn -m recent --name SCANNER_LIST --update --seconds 20 --hitcount 15 -j PORTSCAN
+iptables -A INPUT -p tcp --syn -m recent --name SCANNER_LIST --set
 ```
-
-**Penjelasan:**
-- Module `time` digunakan untuk filter berdasarkan hari
-- `--weekdays Sat,Sun`: Hanya hari Sabtu dan Minggu
-- Port 80: HTTP (Web Server)
-- Subnet yang diizinkan:
-  - `192.230.1.128/26`: Durin (A3)
-  - `192.230.1.192/29`: Khamul (A4)
-  - `192.230.0.0/24`: Elendil & Isildur (A9)
 
 **Testing:**
 ```bash
-# Dari Elendil (hari Rabu - HARUS GAGAL)
-curl http://192.230.1.210
-# Output: Connection timeout atau refused
+# Dari Elendil (Penyerang)
+nmap -p 1-100 192.230.1.234
 
-# Ubah waktu server ke Sabtu
-date -s "2025-11-29 12:00:00"  # Saturday
-
-# Dari Elendil (hari Sabtu - HARUS BERHASIL)
-curl http://192.230.1.210
-# Output: Welcome to IronHills - Apache Server
-```
-
-**Verifikasi Waktu:**
-```bash
-# Cek hari saat ini
-date
-date +%A  # Tampilkan nama hari
+# Hasil: Port filtered / Host seems down
+# Cek log di Palantir: dmesg | tail
 ```
 
 ---
+
+### 2.6 Connection Limiting (IronHills)
+
+**Soal:**
+> Hari Sabtu tiba. Akses ke IronHills dibatasi untuk mencegah overload.
+> Akses ke IronHills hanya boleh berasal dari 3 koneksi aktif per IP dalam waktu bersamaan.
+
+**Solusi:**
+
+Pada **IronHills**, batasi jumlah koneksi per IP saat akhir pekan:
+
+```bash
+# Set waktu ke Sabtu (Testing)
+date -s "2023-12-02 12:00:00"
+
+# Allow Established (Optimasi)
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Logic ConnLimit (Max 3 koneksi pada Sabtu/Minggu)
+iptables -A INPUT -p tcp --syn --dport 80 -m time --weekdays Sat,Sun -m connlimit --connlimit-above 3 -j REJECT
+
+# Allow Normal Traffic (untuk request < 3)
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+```
+
+**Testing:**
+```bash
+# Dari Durin (Client)
+ab -n 100 -c 10 http://192.230.1.210/
+
+# Hasil: Failed requests karena connection refused (REJECT)
+```
+
+---
+
+### 2.7 Traffic Redirection (Sihir Hitam)
+
+**Soal:**
+> Selama uji coba, terdeteksi anomali. Setiap paket yang dikirim Vilya menuju Khamul, ternyata dibelokkan oleh sihir hitam menuju IronHills.
+
+**Solusi:**
+
+Pada **Vilya**, gunakan DNAT pada chain OUTPUT (karena trafik berasal dari server itu sendiri):
+
+```bash
+# Target: Traffic ke Subnet Khamul (192.230.1.192/29)
+# Redirect ke: IronHills (192.230.1.210)
+
+iptables -t nat -A OUTPUT -d 192.230.1.192/29 -p tcp --dport 80 -j DNAT --to-destination 192.230.1.210:80
+```
+
+**Testing:**
+```bash
+# Dari Vilya
+curl -I http://192.230.1.193  # Salah satu IP Khamul
+
+# Hasil: Mendapat response dari IronHills (Server: Apache/IronHills)
+```
+
+---
+
+## 🚧 Misi 3: Isolasi Sang Nazgûl
+
+**Soal:**
+> Mengetahui pengkhianatan Khamul, Aliansi mengambil langkah final: Blokir semua lalu lintas masuk dan keluar dari Khamul.
+> **Penting:** Yang diblokir adalah Khamul (5 Host), BUKAN Durin (50 Host).
+
+**Solusi:**
+
+Implementasi dilakukan di Router **Wilderland** (Gateway terdekat bagi Khamul & Durin):
+
+```bash
+# Enable IP Forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# 1. Allow DHCP (Agar client tetap dapat IP)
+iptables -I FORWARD -p udp --dport 67:68 --sport 67:68 -j ACCEPT
+
+# 2. Blokir Total Subnet Khamul
+iptables -I FORWARD 2 -s 192.230.1.192/29 -j DROP
+iptables -I FORWARD 3 -d 192.230.1.192/29 -j DROP
+```
+
+**Testing:**
+```bash
+# Dari Khamul:
+ping 192.230.1.202 (Vilya) -> GAGAL (RTO)
+
+# Dari Durin (Tetangga):
+ping 192.230.1.202 (Vilya) -> BERHASIL (Reply)
+```
+
 
